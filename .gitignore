@@ -1,0 +1,14 @@
+*.ko
+*.cmd
+*.o
+*.mod
+*.mod.c
+*.symvers
+*.order
+utils/logs/*
+utils/reports/*
+*.log
+*/collect_iio_occ
+*.pyc
+*.csv
+*.db
