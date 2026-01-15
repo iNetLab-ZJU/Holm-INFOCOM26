@@ -1,0 +1,21 @@
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -S /Users/sun/dpu-cc -B /Users/sun/dpu-cc/cmake-build-debug
+-- The C compiler identification is AppleClang 13.1.6.13160021
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /Library/Developer/CommandLineTools/usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Found PkgConfig: /opt/homebrew/bin/pkg-config (found version "0.29.2") 
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Checking for module 'doca-common'
+--   No package 'doca-common' found
+CMake Error at /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.26/Modules/FindPkgConfig.cmake:607 (message):
+  A required package was not found
+Call Stack (most recent call first):
+  /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.26/Modules/FindPkgConfig.cmake:829 (_pkg_check_modules_internal)
+  CMakeLists.txt:19 (pkg_check_modules)
+
+
+-- Configuring incomplete, errors occurred!

@@ -1,0 +1,3 @@
+/home/ubuntu/sunxi/simple_fwd_vnf/cmake-build-dpu-soc/CMakeFiles/simple-fwd-vnf.dir
+/home/ubuntu/sunxi/simple_fwd_vnf/cmake-build-dpu-soc/CMakeFiles/edit_cache.dir
+/home/ubuntu/sunxi/simple_fwd_vnf/cmake-build-dpu-soc/CMakeFiles/rebuild_cache.dir

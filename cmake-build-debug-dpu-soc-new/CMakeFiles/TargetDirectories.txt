@@ -1,0 +1,3 @@
+/home/ubuntu/tdx/dpu-code/cmake-build-debug-dpu-soc-new/CMakeFiles/simple-fwd-vnf.dir
+/home/ubuntu/tdx/dpu-code/cmake-build-debug-dpu-soc-new/CMakeFiles/edit_cache.dir
+/home/ubuntu/tdx/dpu-code/cmake-build-debug-dpu-soc-new/CMakeFiles/rebuild_cache.dir

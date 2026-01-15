@@ -1,45 +1,78 @@
-## Running holm
+# Holm-INFOCOM26
+# 0、DPU OVS Bridge Configuration
+https://docs.nvidia.com/doca/sdk/bluefield+scalable+function+user+guide/index.html
 
-Note: Current implementation requires Intel CascadeLake architecture to run correctly. The MSR locations needed for host congestion signals and host-local response with newer architectures will be different. We plan to add support for newer architectures soon (see planned extensions below). 
+## Create Scalable Function (SF)
+```shell
+/opt/mellanox/iproute2/sbin/mlxdevm port add pci/0000:03:00.1 flavour pcisf pfnum 1 sfnum 4
+/opt/mellanox/iproute2/sbin/mlxdevm port function set pci/0000:03:00.1/294913 hw_addr 00:00:00:00:04:0 trust on state active
+echo mlx5_core.sf.4  > /sys/bus/auxiliary/drivers/mlx5_core.sf_cfg/unbind
+echo mlx5_core.sf.4  > /sys/bus/auxiliary/drivers/mlx5_core.sf/bind
 
-### Specifying paramters needed to build holm
-
-Specify the required system specific inputs in the *src/config.json* file (for eg., the cores used for collecting host congestion signals, parameters for specifying the granularity of host-local response etc.). More details for each parameter is provided in the README inside the src/ directory. 
-```
-cd src
-vim config.json
-```
-
-### Building holm
-
-After modifying the config file, build holm by simply running
-```
-make
-```
-This will produce a loadable kernel module (holm-module)
-
-### Running holm
-
-One can run holm by simply loading the kernel module from within the src/ directory
-```
-sudo insmod holm-module.ko
-```
-holm can also take any user-specified values for IIO occupancy and PCIe bandwidth thresholds (I_T and B_T used in the [paper](https://www.cs.cornell.edu/~ragarwal/pubs/holm.pdf)) as command line input. More details provided in the README inside the src/ directory. 
-
-To stop running holm simply unload the module
-```
-sudo rmmod holm-module
+/opt/mellanox/iproute2/sbin/mlxdevm port add pci/0000:03:00.1 flavour pcisf pfnum 1 sfnum 5
+/opt/mellanox/iproute2/sbin/mlxdevm port function set pci/0000:03:00.1/294914 hw_addr 00:00:00:00:05:0 trust on state active
+echo mlx5_core.sf.5  > /sys/bus/auxiliary/drivers/mlx5_core.sf_cfg/unbind
+echo mlx5_core.sf.5  > /sys/bus/auxiliary/drivers/mlx5_core.sf/bind
 ```
 
-### Installing required utilities
-
-Instructions to install required set of benchmarking applications and measurement tools (for running similar experiments in SIGCOMM'23 paper) is provided in the README in in *utils/* directory. 
-+ Benchmarking applications: We use **iperf3** as network app generating throughput-bound traffic, **netperf** as network app generating latency-sensitive traffic, and **mlc** as the CPU app generating memory-intensive traffic.
-+ Measurement tools: We use **Intel PCM** for measuring the host-level metrics and **Intel Memory Bandwidth Allocation** tool for performing host-local response. We also use **sar** utility to measure CPU utilization.
-
-### Specifying desired experimental settings
-
-Desired experiment settings, for eg., enabling DDIO, configuring MTU size, number of clients/servers used by the network-bound app, enabling TCP optimizations like TSO/GRO/aRFS (currently TCP optimizations can be configured using the provided script in this repo only for Mellanox CX5 NICs), etc can tuned using the script *utils/setup-envir.sh*. Run the script with -h flag to get list of all parameters, and their default values.  
+## SF Bridge Configuration as follows
+```shell
+c88ec159-93ba-4165-abb6-74a2acac6b9c
+    Bridge br2
+        Port en3f1pf1sf5
+            Interface en3f1pf1sf5
+        Port br2
+            Interface br2
+                type: internal
+        Port pf1hpf
+            Interface pf1hpf
+    Bridge br1
+        Port p1
+            Interface p1
+        Port en3f1pf1sf4
+            Interface en3f1pf1sf4
+        Port br1
+            Interface br1
+                type: internal
+    ovs_version: "2.10.0-0056-25.01-based-3.3.4"
 ```
-sudo bash utils/setup-envir.sh -h
+
+## Configure Hardware Flow Table
+```shell
+ovs-vsctl set Open_vSwitch . other_config:hw-offload=true
+ovs-vsctl get Open_vSwitch . other_config:hw-offload
+# Expected return value: "true"
+ovs-ofctl add-flow br1 "in_port=p1,actions=output:en3f1pf1sf4"
+ovs-ofctl add-flow br2 "in_port=pf1hpf,actions=output:en3f1pf1sf5"
+ovs-ofctl add-flow br1 "in_port=en3f1pf1sf4,actions=output:p1"
+ovs-ofctl add-flow br2 "in_port=en3f1pf1sf5,actions=output:pf1hpf"
+```
+
+# 1、System Architecture
+![yuque_mind.jpeg](doc%2Fyuque_mind.jpeg)
+
+1. Priority and port binding mechanism: The highest priority packets are forwarded through the fast path directly to the uplink (host) via hardware forwarding.
+2. Decouple packet receiving and transmitting in the thread layer: 4 dedicated threads are used for packet reception and another 4 dedicated threads for packet transmission separately.
+3. The memory space for packet reception is divided into 6 independent parts, each abstracted as a ring buffer. The higher the packet priority, the larger the corresponding ring buffer size (which results in fewer packet losses).
+4. An independent thread is deployed for rate limiting. Rate limiting operations will be triggered according to specific strategies when congestion is detected on the host side.
+
+# 2、Running Method
+```shell
+/home/ubuntu/sunxi/simple_fwd_vnf/cmake-build-dpu-soc/simple-fwd-vnf -a auxiliary:mlx5_core.sf.4,dv_flow_en=2 -a auxiliary:mlx5_core.sf.5,dv_flow_en=2 -- -l 60 -o -a
+```
+
+# 3、Bandwidth Test
+
+1. Run the program on the ARM side of DPU
+```shell
+/home/ubuntu/sunxi/simple_fwd_vnf/cmake-build-dpu-soc/simple-fwd-vnf -a auxiliary:mlx5_core.sf.4,dv_flow_en=2 -a auxiliary:mlx5_core.sf.5,dv_flow_en=2 -- -l 60 -o -a
+```
+2. Run the iperf3 server on the HOST side (5866) of DPU
+```shell
+iperf3 -s --port 3003
+```
+
+3. Run the iperf3 client on the 5558 server
+```shell
+iperf3 -c 10.0.0.11 --port 3003
 ```

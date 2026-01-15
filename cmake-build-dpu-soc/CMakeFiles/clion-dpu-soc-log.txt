@@ -1,0 +1,4 @@
+/usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -S /home/ubuntu/sunxi/simple_fwd_vnf -B /home/ubuntu/sunxi/simple_fwd_vnf/cmake-build-dpu-soc
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/ubuntu/sunxi/simple_fwd_vnf/cmake-build-dpu-soc
